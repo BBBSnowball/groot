@@ -1,0 +1,54 @@
+soong cleans the environment - it only keeps TOP and even that isn't passed to the
+sub-shell. I have no idea how this is supposed to find its prebuilt tools (or the
+ones installed on the system) - unless /bin/sh is a busybox that ignores PATH for its
+applets.
+
+diff --git a/build/blueprint/bootstrap/bootstrap.go b/build/blueprint/bootstrap/bootstrap.go
+index d5befd9..1ffbd86 100644
+--- a/bootstrap/bootstrap.go
++++ b/bootstrap/bootstrap.go
+@@ -56,7 +56,7 @@ var (
+ 
+ 	compile = pctx.StaticRule("compile",
+ 		blueprint.RuleParams{
+-			Command: "GOROOT='$goRoot' $compileCmd $parallelCompile -o $out.tmp " +
++			Command: "PATH=/media/gos/src/prebuilts/build-tools/path/linux-x86; GOROOT='$goRoot' $compileCmd $parallelCompile -o $out.tmp " +
+ 				"$debugFlags -p $pkgPath -complete $incFlags -pack $in && " +
+ 				"if cmp --quiet $out.tmp $out; then rm $out.tmp; else mv -f $out.tmp $out; fi",
+ 			CommandDeps: []string{"$compileCmd"},
+@@ -67,7 +67,7 @@ var (
+ 
+ 	link = pctx.StaticRule("link",
+ 		blueprint.RuleParams{
+-			Command: "GOROOT='$goRoot' $linkCmd -o $out.tmp $libDirFlags $in && " +
++			Command: "PATH=/media/gos/src/prebuilts/build-tools/path/linux-x86; GOROOT='$goRoot' $linkCmd -o $out.tmp $libDirFlags $in && " +
+ 				"if cmp --quiet $out.tmp $out; then rm $out.tmp; else mv -f $out.tmp $out; fi",
+ 			CommandDeps: []string{"$linkCmd"},
+ 			Description: "link $out",
+@@ -101,7 +101,7 @@ var (
+ 
+ 	cp = pctx.StaticRule("cp",
+ 		blueprint.RuleParams{
+-			Command:     "cp $in $out",
++			Command:     "PATH=/media/gos/src/prebuilts/build-tools/path/linux-x86 cp $in $out",
+ 			Description: "cp $out",
+ 		},
+ 		"generator")
+@@ -116,7 +116,7 @@ var (
+ 
+ 	touch = pctx.StaticRule("touch",
+ 		blueprint.RuleParams{
+-			Command:     "touch $out",
++			Command:     "PATH=/media/gos/src/prebuilts/build-tools/path/linux-x86 touch $out",
+ 			Description: "touch $out",
+ 		},
+ 		"depfile", "generator")
+@@ -128,7 +128,7 @@ var (
+ 			// better to not to touch that while Blueprint and Soong are separate
+ 			// NOTE: The spaces at EOL are important because otherwise Ninja would
+ 			// omit all spaces between the different options.
+-			Command: `cd "$$(dirname "$builder")" && ` +
++			Command: `export PATH=/media/gos/src/prebuilts/build-tools/path/linux-x86; cd "$$(dirname "$builder")" && ` +
+ 				`BUILDER="$$PWD/$$(basename "$builder")" && ` +
+ 				`cd / && ` +
+ 				`env -i "$$BUILDER" ` +

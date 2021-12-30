@@ -1,0 +1,14 @@
+This is required to avoid an OutOfMemoryError.
+
+diff --git a/frameworks/base/api/Android.bp b/frameworks/base/api/Android.bp
+index 2ea180ebf598..c4dad9878ecc 100644
+--- a/api/Android.bp
++++ b/api/Android.bp
+@@ -61,6 +61,7 @@ python_test_host {
+ 
+ metalava_cmd = "$(location metalava)"
+ // Silence reflection warnings. See b/168689341
++metalava_cmd += " -Xmx4g "
+ metalava_cmd += " -J--add-opens=java.base/java.util=ALL-UNNAMED "
+ metalava_cmd += " --no-banner --format=v2 "
+ 

@@ -2,9 +2,10 @@
 # https://grapheneos.org/build
 # Pixel 5: redfin, kernel is redbull
 # Build:
-#  dpkg --add-architecture amd64
-#  # https://packages.debian.org/buster/libc6
-#  sudo dpkg -i libc6_2.28-10_amd64.deb libgcc1_8.3.0-6_amd64.deb gcc-8-base_8.3.0-6_amd64.deb
+#  # for Debian aarch64 - doesn't work
+#  #dpkg --add-architecture amd64
+#  ## https://packages.debian.org/buster/libc6
+#  #sudo dpkg -i libc6_2.28-10_amd64.deb libgcc1_8.3.0-6_amd64.deb gcc-8-base_8.3.0-6_amd64.deb
 #
 #  mkdir src
 #  cd src
@@ -31,6 +32,9 @@
 #  mkdir -p vendor/google_devices
 #  rm -rf vendor/google_devices/$DEVICE
 #  mv vendor/android-prepare-vendor/$DEVICE/$BUILD_ID/vendor/google_devices/* vendor/google_devices/
+#
+#  # build needs files for arm but they only exist for arm64 -> copy them over because we don't need them to be correct, I think
+#  cp ./external/vanadium/prebuilt/{arm64/*.apk,arm/}
 #
 #  source script/envsetup.sh
 #  export OFFICIAL_BUILD=true

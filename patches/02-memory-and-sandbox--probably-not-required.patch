@@ -1,0 +1,31 @@
+This disables the sandbox and adds a flag for more heap memory. Both of this may not
+actually be required because the problems turned out to be in other places (build won't
+work without FHS user env and these are not the flags for metalava). I keep them until
+I have verified that the build works without them.
+
+diff --git a/build/soong/java/config/config.go b/build/soong/java/config/config.go
+index 273084c85..6d85d2e57 100644
+--- a/java/config/config.go
++++ b/java/config/config.go
+@@ -59,7 +59,7 @@ var (
+ )
+ 
+ const (
+-	JavaVmFlags  = `-XX:OnError="cat hs_err_pid%p.log" -XX:CICompilerCount=6 -XX:+UseDynamicNumberOfGCThreads`
++	JavaVmFlags  = `-XX:OnError="cat hs_err_pid%p.log" -XX:CICompilerCount=6 -XX:+UseDynamicNumberOfGCThreads -Xmx4g`
+ 	JavacVmFlags = `-J-XX:OnError="cat hs_err_pid%p.log" -J-XX:CICompilerCount=6 -J-XX:+UseDynamicNumberOfGCThreads`
+ )
+ 
+diff --git a/build/soong/ui/build/sandbox_linux.go b/build/soong/ui/build/sandbox_linux.go
+index dab0e756b..be9dc07c7 100644
+--- a/ui/build/sandbox_linux.go
++++ b/ui/build/sandbox_linux.go
+@@ -61,6 +61,8 @@ var sandboxConfig struct {
+ }
+ 
+ func (c *Cmd) sandboxSupported() bool {
++  // probably not required but I haven't tested without this after fixing the actual problem
++  return false
+ 	if !c.Sandbox.Enabled {
+ 		return false
+ 	}

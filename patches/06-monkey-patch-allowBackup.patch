@@ -1,0 +1,20 @@
+We obviously don't want to keep it like this
+but this is good enough for a first test, I think.
+
+diff --git a/frameworks/base/services/backup/java/com/android/server/backup/utils/BackupEligibilityRules.java b/frameworks/base/services/backup/java/com/android/server/backup/utils/BackupEligibilityRules.java
+index bfb6f65374de..8826545053c4 100644
+--- a/services/backup/java/com/android/server/backup/utils/BackupEligibilityRules.java
++++ b/services/backup/java/com/android/server/backup/utils/BackupEligibilityRules.java
+@@ -158,6 +158,12 @@ public class BackupEligibilityRules {
+     * @return boolean indicating whether backup is allowed.
+     */
+     public boolean isAppBackupAllowed(ApplicationInfo app) {
++        boolean allow = isAppBackupAllowed2(app);
++        if (!allow)
++            Slog.w(TAG, "Allowing backup for app due to custom patch: " + app.packageName);
++        return true;
++    }
++    private boolean isAppBackupAllowed2(ApplicationInfo app) {
+         boolean allowBackup = (app.flags & ApplicationInfo.FLAG_ALLOW_BACKUP) != 0;
+         switch (mOperationType) {
+             case OperationType.MIGRATION:

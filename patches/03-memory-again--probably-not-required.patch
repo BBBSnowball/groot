@@ -1,0 +1,27 @@
+Probably not required, see patch 2. The change in javac.mk must be consistent
+with the change in patch 2. Otherwise, soong will complain.
+
+diff --git a/build/make/core/combo/javac.mk b/build/make/core/combo/javac.mk
+index 32a5c9ebc..619b872c0 100644
+--- a/core/combo/javac.mk
++++ b/core/combo/javac.mk
+@@ -16,5 +16,5 @@ ANDROID_JAVA_TOOLCHAIN := $(ANDROID_JAVA_HOME)/bin
+ 
+ # TODO(ccross): remove this, it is needed for now because it is used by
+ # config.mk before makevars from soong are loaded
+-JAVA := $(ANDROID_JAVA_TOOLCHAIN)/java -XX:OnError="cat hs_err_pid%p.log" -XX:CICompilerCount=6 -XX:+UseDynamicNumberOfGCThreads
++JAVA := $(ANDROID_JAVA_TOOLCHAIN)/java -XX:OnError="cat hs_err_pid%p.log" -XX:CICompilerCount=6 -XX:+UseDynamicNumberOfGCThreads -Xmx4g
+ 
+diff --git a/build/make/core/config.mk b/build/make/core/config.mk
+index 93c5db12d..dee8bea0f 100644
+--- a/core/config.mk
++++ b/core/config.mk
+@@ -603,7 +603,7 @@ EXTRACT_KERNEL := build/make/tools/extract_kernel.py
+ # Path to tools.jar
+ HOST_JDK_TOOLS_JAR := $(ANDROID_JAVA8_HOME)/lib/tools.jar
+ 
+-APICHECK_COMMAND := $(JAVA) -Xmx4g -jar $(APICHECK) --no-banner --compatible-output=no
++APICHECK_COMMAND := $(JAVA) -Xmx8g -jar $(APICHECK) --no-banner --compatible-output=no
+ 
+ # Boolean variable determining if the allow list for compatible properties is enabled
+ PRODUCT_COMPATIBLE_PROPERTY := true
