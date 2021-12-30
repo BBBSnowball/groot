@@ -8,7 +8,7 @@ index c756815c6..f1c28c7b9 100644
  
  	cmd.BuiltTool("metalava").ImplicitTool(ctx.Config().HostJavaToolPath(ctx, "metalava.jar")).
  		Flag(config.JavacVmFlags).
-+		Flag("-Xmx4g").
++		Flag("-J-Xmx4g").
  		Flag("-J--add-opens=java.base/java.util=ALL-UNNAMED").
  		FlagWithArg("-encoding ", "UTF-8").
  		FlagWithArg("-source ", javaVersion.String()).
