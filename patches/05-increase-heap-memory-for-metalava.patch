@@ -8,7 +8,7 @@ index 2ea180ebf598..c4dad9878ecc 100644
  
  metalava_cmd = "$(location metalava)"
  // Silence reflection warnings. See b/168689341
-+metalava_cmd += " -Xmx4g "
++metalava_cmd += " -J-Xmx4g "
  metalava_cmd += " -J--add-opens=java.base/java.util=ALL-UNNAMED "
  metalava_cmd += " --no-banner --format=v2 "
  
