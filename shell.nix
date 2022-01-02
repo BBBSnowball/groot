@@ -108,12 +108,11 @@ let
       chmod u+w $out/usr/bin
       ln -sf ${pkgs.gcc}/bin/* $out/usr/bin
     '';
+    profile = shellHookBase;
   };
   fhs = fhsBuilder [ ldConfig ldConfigCache ];
-in pkgs.mkShell {
-  buildInputs = deps pkgs ++ [ fhs ];
 
-  shellHook = ''
+  shellHookBase = ''
     export ANDROID_SDK_ROOT=${androidsdk}/libexec/android-sdk
     export ANDROID_NDK_ROOT=${androidsdk}/libexec/android-sdk/ndk-bundle
     DEVICE=redfin
@@ -126,8 +125,24 @@ in pkgs.mkShell {
     # nix-shell sets temp to /run/user/$UID, which will not have enough space.
     unset TMP TEMP TMPDIR TEMPDIR
   '';
+in pkgs.mkShell {
+  buildInputs = deps pkgs ++ [ fhs ];
+
+  shellHook = shellHookBase + ''
+    if [ "''${0##*/}" != "rc" ] ; then
+      echo "====================================="
+      echo "== Run   gos-build-env             =="
+      echo "== Then  source script/envsetup.sh =="
+      echo "====================================="
+    else
+      : command has been passed to shell -> do not print anything
+    fi
+  '';
 
   # This goes directly into the chrootenv (which is what we want) but I don't
   # think that there is any way to pass a command to it.
-  passthru.env = (fhs [ ldConfig ldConfigCache ]).env;
+  # The command is only available in /tmp/nix-shell-bla/rc and that file is
+  # already deleted when our shellHook runs so I don't think we have any way
+  # to pass this information through an exec call.
+  passthru.env = fhs.env;
 }
