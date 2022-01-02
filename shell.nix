@@ -80,6 +80,9 @@ let
   # test with: LD_LIBRARY_PATH= ldd prebuilts/clang/host/linux-x86/clang-r416183b1/bin/clang++.real
   # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
   # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
+  #NOTE This doesn't work unless we undo the patch to ld.so:
+  # ld.so.conf is disabled in NixOS: https://github.com/NixOS/nixpkgs/blob/a0dbe47318bbab7559ffbfa7c4872a517833409f/pkgs/development/libraries/glibc/dont-use-system-ld-so-cache.patch
+  # -> see below, ldPreload
   ldConfig = pkgs.writeTextFile {
     name = "ld-config";
     destination = "/etc/ld.so.conf";
@@ -89,13 +92,24 @@ let
       /usr/lib64
     '';
   };
-
   ldConfigCache = pkgs.runCommand "ld-cache" {
     env = fhsBuilder [ ldConfig ];
   } ''
     mkdir -p $out/etc
     $env/bin/gos-build-env -c "ldconfig -f /etc/ld.so.conf -C $out/etc/ld.so.cache"
   '';
+
+  # This is very much a hack. We know that the prebuilt files use libc and libz from the base system and provide the other
+  # files themselves. The patched ld.so will find the glibc libraries just fine (but not others) so libz is the only one
+  # that we have to monkey-patch (monkey-load ? *g*). What a mess!
+  #NOTE Preloading is definetely not the right thing to do here but NixOS makes it hard to add anything in the usual ways.
+  ldPreload = pkgs.writeTextFile {
+    name = "ld-preload";
+    destination = "/etc/ld-nix.so.preload";
+    text = ''
+      ${pkgs.zlib}/lib/libz.so.1
+    '';
+  };
 
   fhsBuilder = extra: pkgs.buildFHSUserEnv {
     name = "gos-build-env";
@@ -110,7 +124,7 @@ let
     '';
     profile = shellHookBase;
   };
-  fhs = fhsBuilder [ ldConfig ldConfigCache ];
+  fhs = fhsBuilder [ ldConfig ldConfigCache ldPreload ];
 
   shellHookBase = ''
     export ANDROID_SDK_ROOT=${androidsdk}/libexec/android-sdk
