@@ -42,6 +42,10 @@
 #  choosecombo release redfin user
 #
 #  m target-files-package
+#
+#
+# #NOTE: most of the above should also be run in the gos-build-env...
+# ( cd Magisk && nix-shell -p ../shell.nix --run "gos-build-env python3 ./build.py all" )
 
 let
   #androidsdk = 
@@ -72,18 +76,40 @@ let
     #clang_13 bison flex bc lld_13 llvmPackages_13.bintools llvmPackages_13.llvm
   ];
 
-  fhs = pkgs.buildFHSUserEnv {
+  # build system unsets LD_LIBRARY_PATH so make a good enough ld.so.conf
+  # test with: LD_LIBRARY_PATH= ldd prebuilts/clang/host/linux-x86/clang-r416183b1/bin/clang++.real
+  # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
+  # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
+  ldConfig = pkgs.writeTextFile {
+    name = "ld-config";
+    destination = "/etc/ld.so.conf";
+    text = ''
+      #/usr/lib  # symlink to lib64
+      /usr/lib32
+      /usr/lib64
+    '';
+  };
+
+  ldConfigCache = pkgs.runCommand "ld-cache" {
+    env = fhsBuilder [ ldConfig ];
+  } ''
+    mkdir -p $out/etc
+    $env/bin/gos-build-env -c "ldconfig -f /etc/ld.so.conf -C $out/etc/ld.so.cache"
+  '';
+
+  fhsBuilder = extra: pkgs.buildFHSUserEnv {
     name = "gos-build-env";
     #targetPkgs = p: deps p ++ [ p.zlib p.gcc p.glibc p.glibc.dev ];
     # gcc-unwrapped is for /lib/gcc
-    targetPkgs = p: [ p.zlib p.gcc p.glibc p.glibc.dev p.gcc-unwrapped p.openssl p.openssl.dev p.ncurses6 p.ncurses5.dev ];
+    targetPkgs = p: ([ p.zlib p.gcc p.glibc p.glibc.dev p.gcc-unwrapped p.openssl p.openssl.dev p.ncurses6 p.ncurses5.dev ]
+      ++ extra);
     extraBuildCommands = ''
       # prefer wrapped gcc
-      ls -l $out/usr/bin -d
       chmod u+w $out/usr/bin
       ln -sf ${pkgs.gcc}/bin/* $out/usr/bin
     '';
   };
+  fhs = fhsBuilder [ ldConfig ldConfigCache ];
 in pkgs.mkShell {
   buildInputs = deps pkgs ++ [ fhs ];
 
@@ -100,4 +126,8 @@ in pkgs.mkShell {
     # nix-shell sets temp to /run/user/$UID, which will not have enough space.
     unset TMP TEMP TMPDIR TEMPDIR
   '';
+
+  # This goes directly into the chrootenv (which is what we want) but I don't
+  # think that there is any way to pass a command to it.
+  passthru.env = (fhs [ ldConfig ldConfigCache ]).env;
 }
