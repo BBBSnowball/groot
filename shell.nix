@@ -43,6 +43,12 @@
 #
 #  m target-files-package
 #
+#  ... generate keys ...
+#  "", "abcd"
+#
+#  m otatools-package
+#  ln -s . vendor/google_devices/redfin
+#  OUT=$(pwd)/out ANDROID_BUILD_TOP=$(pwd) bash -x script/release.sh redfin
 #
 # #NOTE: most of the above should also be run in the gos-build-env...
 # ( cd Magisk && nix-shell -p ../shell.nix --run "gos-build-env python3 ./build.py all" )
@@ -74,6 +80,9 @@ let
 
     # skip prebuilt tools -> use our own -> doesn't work
     #clang_13 bison flex bc lld_13 llvmPackages_13.bintools llvmPackages_13.llvm
+
+    # for autoPatchelfHook of prebuilt binaries
+    ncurses5 autoPatchelfHook libcxx
   ];
 
   # build system unsets LD_LIBRARY_PATH so make a good enough ld.so.conf
@@ -108,6 +117,7 @@ let
     destination = "/etc/ld-nix.so.preload";
     text = ''
       ${pkgs.zlib}/lib/libz.so.1
+      ${pkgs.ncurses5}/lib/libncurses.so.5
     '';
   };
 
@@ -115,7 +125,7 @@ let
     name = "gos-build-env";
     #targetPkgs = p: deps p ++ [ p.zlib p.gcc p.glibc p.glibc.dev ];
     # gcc-unwrapped is for /lib/gcc
-    targetPkgs = p: ([ p.zlib p.gcc p.glibc p.glibc.dev p.gcc-unwrapped p.openssl p.openssl.dev p.ncurses6 p.ncurses5.dev ]
+    targetPkgs = p: ([ p.zlib p.gcc p.glibc p.glibc.dev p.gcc-unwrapped p.openssl p.openssl.dev p.ncurses6 p.ncurses5.dev pkgs.autoPatchelfHook ]
       ++ extra);
     extraBuildCommands = ''
       # prefer wrapped gcc
