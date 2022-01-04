@@ -131,6 +131,11 @@ let
       # prefer wrapped gcc
       chmod u+w $out/usr/bin
       ln -sf ${pkgs.gcc}/bin/* $out/usr/bin
+
+      # NixOS doesn't usually want ld.so to use the systems directories but we needs this here.
+      #NOTE We should do the same for the 32-bit libraries...
+      ln -sf ${libcNoPatch}/lib/ld* $out/lib/
+      ln -sf ${libcNoPatch}/lib/ld* $out/usr/lib/
     '';
     profile = shellHookBase;
   };
@@ -152,6 +157,22 @@ let
     DEVICE=redfin
     BUILD_ID=SQ1A.211205.008
   '';
+
+  removeByBaseName = nameToRemove: with builtins; filter (x: baseNameOf x != nameToRemove);
+  assertSomeRemoved = before: f: let after = f before; in
+    with builtins; assert pkgs.lib.assertMsg (length before > length after)
+      ("We wanted to remove " ++ nameToRemove ++ " but list isn't shorter: " ++ toJSON { inherit before after; });
+    after;
+  removeByBaseNameStrict = nameToRemove: xs: assertSomeRemoved xs (removeByBaseName nameToRemove);
+  traceBaseNames = xs: with builtins; pkgs.lib.traceSeq (map baseNameOf xs);
+  libcNoPatch = pkgs.glibc.overrideAttrs (x: traceBaseNames x.patches {
+    patches = removeByBaseNameStrict "dont-use-system-ld-so-preload.patch" (removeByBaseNameStrict "dont-use-system-ld-so-cache.patch" x.patches);
+    #buildPhase = ''
+    #  make csu/objects
+    #  make subdir=elf -C ../glibc-2.32/elf ..=../ objdir=`pwd` `pwd`/elf/ld.so
+    #  -> ld.so seems to need libc_pic.a so we probably cannot save much.
+    #'';
+  });
 in pkgs.mkShell {
   buildInputs = deps pkgs ++ [ fhs ];
 
@@ -173,4 +194,5 @@ in pkgs.mkShell {
   # already deleted when our shellHook runs so I don't think we have any way
   # to pass this information through an exec call.
   passthru.env = fhs.env;
+  passthru.libcNoPatch = libcNoPatch;
 }
