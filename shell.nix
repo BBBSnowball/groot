@@ -190,8 +190,24 @@ let
     #  -> ld.so seems to need libc_pic.a so we probably cannot save much.
     #'';
   });
+
+  # nix-shell shell.nix --run gos-interactive
+  # nix-shell shell.nix --run "gos-interactive -c some-command"
+  enterInteractiveScript = pkgs.writeShellScriptBin "gos-interactive" ''
+    exec gos-build-env --init-file ${pkgs.writeShellScript "init-gos" ''
+      # This is run instead of .bashrc so include it.
+      [ -e ~/.bashrc ] && source ~/.bash_rc
+
+      source script/envsetup.sh
+      choosecombo release redfin user
+      DEVICE=redfin
+      BUILD_ID=SQ1A.211205.008
+
+      echo "You can now run commands like: m target-files-package"
+    ''} "$@"
+  '';
 in pkgs.mkShell {
-  buildInputs = deps pkgs ++ [ fhs ];
+  buildInputs = deps pkgs ++ [ fhs enterInteractiveScript ];
 
   shellHook = shellHookBase + ''
     if [ "''${0##*/}" != "rc" ] ; then
@@ -200,6 +216,7 @@ in pkgs.mkShell {
       echo "== Then  source script/envsetup.sh       =="
       echo "== Then  choosecombo release redfin user =="
       echo "==========================================="
+      echo '(use `nix-shell shell.nix --run gos-interactive` to automatically do this)'
     else
       : command has been passed to shell -> do not print anything
     fi
