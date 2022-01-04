@@ -88,6 +88,7 @@ let
   # build system unsets LD_LIBRARY_PATH so make a good enough ld.so.conf
   # test with: LD_LIBRARY_PATH= ldd prebuilts/clang/host/linux-x86/clang-r416183b1/bin/clang++.real
   # ( LD_LIBRARY_PATH= LD_DEBUG=all ldd prebuilts/clang/host/linux-x86/clang-3289846/bin/clang.real |&less )
+  # ( ldconfig -v -N -f /etc/ld.so.conf |grep ncur; patchelf --print-soname /lib/libncurses.so.5 )
   # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
   # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
   ldConfig = pkgs.writeTextFile {
@@ -125,6 +126,7 @@ let
       #     https://github.com/NixOS/nixpkgs/pull/59595
       ln -sf ${libcNoPatch}/lib/ld* $out/lib/
       ln -sf ${libcNoPatch}/lib/ld* $out/usr/lib/
+      ln -sf ${libcNoPatch.bin}/bin/ldd $out/usr/bin/
 
       #for x in /bin/sh /bin/bash /usr/bin/sh /usr/bin/bash ; do
       #  mv $out$x $out$x.orig
@@ -132,11 +134,28 @@ let
       #  chmod u+w $out$x
       #  patchelf --set-interpreter ${libcNoPatch}/lib/ld-*.so $out$x
       #done
+
+      for x in $out/lib/*.so* ; do
+        if patchelf --print-soname $x &>/dev/null ; then
+          a=$(basename $x)
+          b=$(patchelf --print-soname $x)
+          #a2="$(sed -s 's/^\(.*\.so\.[0-9]\+\)\..*/\1/' <<<"$a")"
+          #if [ "$a2" != "$b" ] ; then
+          if [ "$a" != "$b" -a "''${a##$b.}" == "$a" ] ; then
+            # filename doesn't start with soname -> might be an alias
+            echo "soname doesn't match filename: $a: $b"
+            mv $x $x.bak
+            cp -L $x.bak $x
+            rm $x.bak
+            chmod u+w $x
+            patchelf --set-soname "$a" "$x"
+          fi
+        fi
+      done
     '';
     profile = shellHookBase;
   };
-  #fhs = fhsBuilder [ ldConfig ldConfigCache ];
-  fhs = fhsBuilder [ ldConfig ];
+  fhs = fhsBuilder [ ldConfig ldConfigCache ];
 
   shellHookBase = ''
     export ANDROID_SDK_ROOT=${androidsdk}/libexec/android-sdk
