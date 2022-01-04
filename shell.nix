@@ -139,8 +139,6 @@ let
   shellHookBase = ''
     export ANDROID_SDK_ROOT=${androidsdk}/libexec/android-sdk
     export ANDROID_NDK_ROOT=${androidsdk}/libexec/android-sdk/ndk-bundle
-    DEVICE=redfin
-    BUILD_ID=SQ1A.211205.008
 
     # sdkmanager uses JAVA_HOME to find Java and it doesn't work with Java 17
     # unset JAVA_HOME so it is using java8, which is set by the wrapper script
@@ -148,16 +146,22 @@ let
 
     # nix-shell sets temp to /run/user/$UID, which will not have enough space.
     unset TMP TEMP TMPDIR TEMPDIR
+
+    # We have patched the update URL so include the updater app.
+    export OFFICIAL_BUILD=true
+    DEVICE=redfin
+    BUILD_ID=SQ1A.211205.008
   '';
 in pkgs.mkShell {
   buildInputs = deps pkgs ++ [ fhs ];
 
   shellHook = shellHookBase + ''
     if [ "''${0##*/}" != "rc" ] ; then
-      echo "====================================="
-      echo "== Run   gos-build-env             =="
-      echo "== Then  source script/envsetup.sh =="
-      echo "====================================="
+      echo "==========================================="
+      echo "== Run   gos-build-env                   =="
+      echo "== Then  source script/envsetup.sh       =="
+      echo "== Then  choosecombo release redfin user =="
+      echo "==========================================="
     else
       : command has been passed to shell -> do not print anything
     fi
