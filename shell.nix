@@ -72,7 +72,7 @@ let
   androidsdk = androidStuff.androidsdk;
   deps = pkgs: with pkgs; [
     gitRepo git gnupg
-    jdk ncurses5 openssl rsync unzip zip
+    jdk11 ncurses5 openssl rsync unzip zip
     e2fsprogs jq protobuf
     (python3.withPackages (p: with p; [ p.protobuf ]))
     signify
@@ -90,6 +90,7 @@ let
   # ( LD_LIBRARY_PATH= LD_DEBUG=all ldd prebuilts/clang/host/linux-x86/clang-3289846/bin/clang.real |&less )
   # ( ldconfig -v -N -f /etc/ld.so.conf |grep ncur; patchelf --print-soname /lib/libncurses.so.5 )
   # ( LD_LIBRARY_PATH=$LD_LIBRARY_PATH:prebuilts/jdk/jdk11/linux-x86/lib/server ldd /home/user/grapheneos/src/prebuilts/jdk/jdk11/linux-x86/lib/libfontmanager.so )
+  # ( java -jar out/host/linux-x86/framework/RecoveryImageGenerator.jar --image_width 1070 --text_name recovery_installing --font_dir out/target/product/redfin/obj/ETC/recovery_font_files_intermediates --resource_dir bootable/recovery/tools/recovery_l10n/res/ --output_file out/target/product/redfin/obj/ETC/recovery_text_res_intermediates//installing_text.png --center_alignment )
   # out/host/linux-x86/bin/avbtool and assemble_vintf work now (with patched sonames for ld.so.cache) but only after rebuilding them.
   # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
   # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
@@ -113,7 +114,7 @@ let
     name = "gos-build-env";
     #targetPkgs = p: deps p ++ [ p.zlib p.gcc p.glibc p.glibc.dev ];
     # gcc-unwrapped is for /lib/gcc
-    targetPkgs = p: (with p; [ zlib gcc glibc glibc.dev gcc-unwrapped openssl openssl.dev ncurses6 ncurses5.dev autoPatchelfHook freetype ]
+    targetPkgs = p: (with p; [ zlib gcc glibc glibc.dev gcc-unwrapped openssl openssl.dev ncurses6 ncurses5.dev autoPatchelfHook freetype jdk11 fontconfig ]
       ++ extra);
     extraBuildCommands = ''
       # prefer wrapped gcc
