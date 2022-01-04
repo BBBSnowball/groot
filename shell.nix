@@ -87,6 +87,7 @@ let
 
   # build system unsets LD_LIBRARY_PATH so make a good enough ld.so.conf
   # test with: LD_LIBRARY_PATH= ldd prebuilts/clang/host/linux-x86/clang-r416183b1/bin/clang++.real
+  # ( LD_LIBRARY_PATH= LD_DEBUG=all ldd prebuilts/clang/host/linux-x86/clang-3289846/bin/clang.real |&less )
   # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
   # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
   ldConfig = pkgs.writeTextFile {
@@ -118,12 +119,24 @@ let
 
       # NixOS doesn't usually want ld.so to use the systems directories but we needs this here.
       #NOTE We should do the same for the 32-bit libraries...
+      #NOTE This is *not* actually used?! Instead it uses `patchelf --print-interpreter $(which sh)`
+      #     so our patching won't work.
+      #     -> I'm giving up. fhs-userenv is just broken. Others seem to agree with no good workaround (short of rebuilding the world):
+      #     https://github.com/NixOS/nixpkgs/pull/59595
       ln -sf ${libcNoPatch}/lib/ld* $out/lib/
       ln -sf ${libcNoPatch}/lib/ld* $out/usr/lib/
+
+      #for x in /bin/sh /bin/bash /usr/bin/sh /usr/bin/bash ; do
+      #  mv $out$x $out$x.orig
+      #  cp -L $out$x.orig $out$x
+      #  chmod u+w $out$x
+      #  patchelf --set-interpreter ${libcNoPatch}/lib/ld-*.so $out$x
+      #done
     '';
     profile = shellHookBase;
   };
-  fhs = fhsBuilder [ ldConfig ldConfigCache ];
+  #fhs = fhsBuilder [ ldConfig ldConfigCache ];
+  fhs = fhsBuilder [ ldConfig ];
 
   shellHookBase = ''
     export ANDROID_SDK_ROOT=${androidsdk}/libexec/android-sdk
