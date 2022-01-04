@@ -89,6 +89,8 @@ let
   # test with: LD_LIBRARY_PATH= ldd prebuilts/clang/host/linux-x86/clang-r416183b1/bin/clang++.real
   # ( LD_LIBRARY_PATH= LD_DEBUG=all ldd prebuilts/clang/host/linux-x86/clang-3289846/bin/clang.real |&less )
   # ( ldconfig -v -N -f /etc/ld.so.conf |grep ncur; patchelf --print-soname /lib/libncurses.so.5 )
+  # ( LD_LIBRARY_PATH=$LD_LIBRARY_PATH:prebuilts/jdk/jdk11/linux-x86/lib/server ldd /home/user/grapheneos/src/prebuilts/jdk/jdk11/linux-x86/lib/libfontmanager.so )
+  # out/host/linux-x86/bin/avbtool and assemble_vintf work now (with patched sonames for ld.so.cache) but only after rebuilding them.
   # https://unix.stackexchange.com/questions/520546/nixos-modifying-config-files-on-a-buildfhsuserenv-environment
   # Debian also adds paths like /lib/x86_64-linux-gnu but they don't exist here.
   ldConfig = pkgs.writeTextFile {
@@ -111,7 +113,7 @@ let
     name = "gos-build-env";
     #targetPkgs = p: deps p ++ [ p.zlib p.gcc p.glibc p.glibc.dev ];
     # gcc-unwrapped is for /lib/gcc
-    targetPkgs = p: ([ p.zlib p.gcc p.glibc p.glibc.dev p.gcc-unwrapped p.openssl p.openssl.dev p.ncurses6 p.ncurses5.dev pkgs.autoPatchelfHook ]
+    targetPkgs = p: (with p; [ zlib gcc glibc glibc.dev gcc-unwrapped openssl openssl.dev ncurses6 ncurses5.dev autoPatchelfHook freetype ]
       ++ extra);
     extraBuildCommands = ''
       # prefer wrapped gcc
@@ -120,10 +122,7 @@ let
 
       # NixOS doesn't usually want ld.so to use the systems directories but we needs this here.
       #NOTE We should do the same for the 32-bit libraries...
-      #NOTE This is *not* actually used?! Instead it uses `patchelf --print-interpreter $(which sh)`
-      #     so our patching won't work.
-      #     -> I'm giving up. fhs-userenv is just broken. Others seem to agree with no good workaround (short of rebuilding the world):
-      #     https://github.com/NixOS/nixpkgs/pull/59595
+      #     see also: https://github.com/NixOS/nixpkgs/pull/59595
       ln -sf ${libcNoPatch}/lib/ld* $out/lib/
       ln -sf ${libcNoPatch}/lib/ld* $out/usr/lib/
       ln -sf ${libcNoPatch.bin}/bin/ldd $out/usr/bin/
