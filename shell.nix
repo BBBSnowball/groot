@@ -50,6 +50,8 @@
 #  ln -s . vendor/google_devices/redfin
 #  OUT=$(pwd)/out ANDROID_BUILD_TOP=$(pwd) bash -x script/release.sh redfin
 #
+#  mkdir x && cd x && unzip ../out/release-redfin-2021122717/redfin-factory-2021122717.zip && cd redfin-factory-2021122717 && ./flash-all.sh
+#
 # #NOTE: most of the above should also be run in the gos-build-env...
 # ( cd Magisk && nix-shell -p ../shell.nix --run "gos-build-env python3 ./build.py all" )
 
@@ -83,6 +85,9 @@ let
 
     # for autoPatchelfHook of prebuilt binaries
     ncurses5 autoPatchelfHook libcxx
+
+    # fastboot, for flashing
+    android-tools
   ];
 
   # build system unsets LD_LIBRARY_PATH so make a good enough ld.so.conf
