@@ -1,3 +1,6 @@
 [submodule "Magisk"]
 	path = Magisk
 	url = https://github.com/topjohnwu/Magisk
+[submodule "Auditor"]
+	path = Auditor
+	url = https://github.com/GrapheneOS/Auditor
