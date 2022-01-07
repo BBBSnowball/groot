@@ -4,3 +4,6 @@
 [submodule "Auditor"]
 	path = Auditor
 	url = https://github.com/GrapheneOS/Auditor
+[submodule "robotnix"]
+	path = robotnix
+	url = https://github.com/danielfullmer/robotnix
