@@ -52,6 +52,24 @@
 #
 #  mkdir x && cd x && unzip ../out/release-redfin-2021122717/redfin-factory-2021122717.zip && cd redfin-factory-2021122717 && ./flash-all.sh
 #
+#  # verify:
+#  # https://www.reddit.com/r/GrapheneOS/comments/bpcttk/avb_key_auditor_app/
+#  # -> yes, it is simply the sha256
+#  # https://android.googlesource.com/platform/external/avb/+/master/README.md
+#  # -> bootloader must show the fingerprint in the warning. It does so as "ID: xxx" with the first 8 digits.
+#  sha256sum keys/redfin/avb_pkmd.bin
+#  # change here: https://github.com/GrapheneOS/Auditor/blob/629e4fbde19abd51cacb9324b054d734a3c07f7a/app/src/main/java/app/attestation/auditor/AttestationProtocol.java#L490
+
+#  cd Auditor
+#  TODO: change avb fingerprint and apk signing key
+#  keytool -genkey -v -keystore ~/android.keystore -alias snowball -keyalg RSA -keysize 4096 -validity 10000;  #abcdef
+#  keytool -list  ~/android.keystore  ;# -> fingerprint -> ATTESTATION_APP_SIGNATURE_DIGEST_RELEASE
+#  ./gradlew assemble --no-daemon
+#  cp app/build/outputs/apk/release/app-release-unsigned.apk x.apk
+#  $ANDROID_SDK_ROOT/build-tools/31.0.0/apksigner sign --ks ~/android.keystore x.apk
+#  adb install --no-streaming x.apk
+
+#
 # #NOTE: most of the above should also be run in the gos-build-env...
 # ( cd Magisk && nix-shell -p ../shell.nix --run "gos-build-env python3 ./build.py all" )
 
