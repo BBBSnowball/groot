@@ -12,7 +12,8 @@ runcmd:
 - chown -R 0.0 /nix
 - touch /etc/NIXOS
 - echo "etc/nixos" >/etc/NIXOS_LUSTRATE
-- echo "root/.ssh/authorized_keys" >/etc/NIXOS_LUSTRATE
+- echo "root/.ssh/authorized_keys" >>/etc/NIXOS_LUSTRATE
+- echo "etc/ssh-shared-secret" >>/etc/NIXOS_LUSTRATE
 - rm -rf /boot/efi/*
 - mkdir /boot/efi/{EFI/systemd,EFI/BOOT} -p
 - /nix/var/nix/profiles/system/bin/switch-to-configuration boot
