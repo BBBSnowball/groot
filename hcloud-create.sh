@@ -4,6 +4,7 @@ set -e
 
 SERVER_NAME=a
 SERVER_TYPE=cpx11
+#SERVER_TYPE=cpx31
 LOCATION=nbg1
 IMAGE=debian-11
 #SSH_KEY=user@personal-hetzner
@@ -26,7 +27,7 @@ fi
 
 #if [ -z "$(hcloud context active)" ] ; then ...  -> hcloud already shows a good error message
 
-cloud-init devel schema --annotate -c hcloud-user-data.yml
+cloud-init schema --annotate -c hcloud-user-data.yml
 
 if [ ! -e ".servers/id_rsa" ] ; then
   mkdir -p .servers
@@ -48,7 +49,7 @@ SECRET=$(openssl rand -base64 40)
 echo "- path: /etc/ssh-shared-secret" >>$CFG
 echo "  content: '$SECRET'" >>$CFG
 echo "  permissions: '0600'" >>$CFG
-cloud-init devel schema --annotate -c $CFG
+cloud-init schema --annotate -c $CFG
 
 hcloud server create --location "$LOCATION" --image "$IMAGE" --ssh-key "$SSH_KEY" --name "$SERVER_NAME" --type "$SERVER_TYPE" --user-data-from-file $CFG
 IP=$(hcloud server ip "$SERVER_NAME")
@@ -68,6 +69,7 @@ Host server $SERVER_NAME
 EOF
 ( umask 077; echo "$SECRET" >".servers/$SERVER_NAME/ssh-shared-secret" )
 
+echo "Waiting for server to be reachable on port 36431..."
 for _ in $(seq 500) ; do
   #if curl -o ".servers/$SERVER_NAME/ssh-server-pubkey" "http://$IP:36431/ssh-server-pubkey" &>/dev/null ; then
   if nc -w 10 "$IP" 36431 2>/dev/null >".servers/$SERVER_NAME/keys.tar" </dev/null ; then
