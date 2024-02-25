@@ -1,24 +1,12 @@
 #cloud-config
 #
-# use: nix-shell -p cloud-init -p hcloud --run 'cloud-init devel schema --annotate -c hcloud-user-data.yml && hcloud server create --location nbg1 --image debian-11 --ssh-key user@personal-hetzner --name a --type cpx11 --user-data-from-file hcloud-user-data.yml'
+# use: nix develop --run "./hcloud-create.sh"
+# (which roughly does this: nix-shell -p cloud-init -p hcloud --run 'cloud-init devel schema --annotate -c hcloud-user-data.yml && hcloud server create --location nbg1 --image debian-11 --ssh-key user@personal-hetzner --name a --type cpx11 --user-data-from-file hcloud-user-data.yml' )
 # debug: connect to Debian via SSH and run: journalctl -f --unit cloud-final
+#        and look into /var/log/cloud-init-output.log
 
 runcmd:
-- set -e
-- /root/install-nix
-#- . /root/.nix-profile/etc/profile.d/nix.sh
-- /root/.nix-profile/bin/nix --extra-experimental-features "nix-command flakes" build -L github:BBBSnowball/nixcfg#nixosConfigurations.hetzner-temp.config.system.build.toplevel --out-link /root/system && /root/.nix-profile/bin/nix-env -p /nix/var/nix/profiles/system --set /root/system
-# NixOS manual suggests this. Not really needed here because we do a multi-user install.
-- chown -R 0.0 /nix
-- touch /etc/NIXOS
-- echo "etc/nixos" >/etc/NIXOS_LUSTRATE
-- echo "root/.ssh/authorized_keys" >>/etc/NIXOS_LUSTRATE
-- echo "etc/ssh-shared-secret" >>/etc/NIXOS_LUSTRATE
-- echo "var/lib/systemd/random-seed" >>/etc/NIXOS_LUSTRATE
-- rm -rf /boot/efi/*
-- mkdir /boot/efi/{EFI/systemd,EFI/BOOT} -p
-- /nix/var/nix/profiles/system/bin/switch-to-configuration boot
-- reboot
+- /root/install
 write_files:
 - path: /root/install-nix
   permissions: '0755'
@@ -37,6 +25,47 @@ write_files:
     gpg2 --no-autostart --batch --verify ~/install-nix-2.5.1{.asc,} 
     echo 'user ALL=(ALL:ALL) NOPASSWD: ALL' >>/etc/sudoers
     yes | sudo -u user  sh ~user/install-nix-2.5.1 --daemon --no-channel-add
+- path: /root/install-nixos
+  permissions: '0755'
+  content: |
+    #!/bin/bash
+    set -xe
+    /root/install-nix
+    #. /root/.nix-profile/etc/profile.d/nix.sh
+    /root/.nix-profile/bin/nix --extra-experimental-features "nix-command flakes" build \
+      -L github:BBBSnowball/nixcfg#nixosConfigurations.hetzner-temp.config.system.build.toplevel \
+      --out-link /root/system
+    /root/.nix-profile/bin/nix-env -p /nix/var/nix/profiles/system --set /root/system
+    # NixOS manual suggests this. Not really needed here because we do a multi-user install.
+    chown -R 0.0 /nix
+    touch /etc/NIXOS
+    echo "etc/nixos" >/etc/NIXOS_LUSTRATE
+    echo "root/.ssh/authorized_keys" >>/etc/NIXOS_LUSTRATE
+    echo "etc/ssh-shared-secret" >>/etc/NIXOS_LUSTRATE
+    echo "var/lib/systemd/random-seed" >>/etc/NIXOS_LUSTRATE
+    rm -rf /boot/efi/*
+    mkdir /boot/efi/{EFI/systemd,EFI/BOOT} -p
+    /nix/var/nix/profiles/system/bin/switch-to-configuration boot
+    reboot
+- path: /root/install
+  permissions: '0755'
+  content: |
+    #!/bin/bash
+    set -xe
+    if ! /root/install-nixos ; then
+      # some error has happended
+      # -> serve error in the same way that we would have for the host keys in case of success
+      apt update && apt install openssl socat
+      umask 077
+      mkdir /tmp/report
+      cd /tmp/report
+      tar -c error.tar /var/log/cloud-init*
+      openssl dgst -sha256 -hmac <(cat /etc/ssh-shared-secret) -binary <error.tar | openssl enc -base64 -A >error.tar.sig
+      tar -cf bundle.tar error.tar error.tar.sig
+      rm host-keys{,.sig}
+      iptables -I INPUT -p tcp --dport 36431 -j ACCEPT
+      socat -U tcp-listen:36431,fork exec:"cat bundle.tar"
+    fi
 - path: /root/edolstra.gpg
   content: |
     -----BEGIN PGP PUBLIC KEY BLOCK-----

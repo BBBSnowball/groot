@@ -87,6 +87,10 @@ if [ ! -e ".servers/$SERVER_NAME/keys.tar" ] ; then
 fi
 #curl -o ".servers/$SERVER_NAME/ssh-server-pubkey.sig" "http://$IP:1234/ssh-server-pubkey.sig"
 
+if tar -tf ".servers/$SERVER_NAME/keys.tar" | grep -q error.tar ; then
+  echo "keys.tar could contain an error message instead of the keys." >&2
+  exit 1
+fi
 tar -C ".servers/$SERVER_NAME" -xf ".servers/$SERVER_NAME/keys.tar" host-keys host-keys.sig
 
 EXPECTED="$(openssl dgst -sha256 -hmac <(echo "$SECRET") -binary <".servers/$SERVER_NAME/host-keys" | openssl enc -base64 -A)"
