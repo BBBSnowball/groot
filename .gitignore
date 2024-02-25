@@ -1,2 +1,6 @@
 /src/
 /.servers/
+/keys/
+*.bak*
+x[0-9]
+result*

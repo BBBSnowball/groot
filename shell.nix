@@ -63,7 +63,7 @@
 #  cd Auditor
 #  TODO: change avb fingerprint and apk signing key
 #  keytool -genkey -v -keystore ~/android.keystore -alias snowball -keyalg RSA -keysize 4096 -validity 10000;  #abcdef
-#  keytool -list  ~/android.keystore  ;# -> fingerprint -> ATTESTATION_APP_SIGNATURE_DIGEST_RELEASE
+#  keytool -list -keystore ~/android.keystore  ;# -> fingerprint -> remove colons -> ATTESTATION_APP_SIGNATURE_DIGEST_RELEASE
 #  ./gradlew assemble --no-daemon
 #  cp app/build/outputs/apk/release/app-release-unsigned.apk x.apk
 #  $ANDROID_SDK_ROOT/build-tools/31.0.0/apksigner sign --ks ~/android.keystore x.apk
@@ -72,6 +72,8 @@
 #
 # #NOTE: most of the above should also be run in the gos-build-env...
 # ( cd Magisk && nix-shell -p ../shell.nix --run "gos-build-env python3 ./build.py all" )
+
+# NIX_SSHOPTS="-F .servers/a/config" nix-copy-closure --from server /nix/store/4yahnihpl6cy9libp6d50m613f7p196i-release.sh
 
 let
   #androidsdk = 

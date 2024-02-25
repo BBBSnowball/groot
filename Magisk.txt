@@ -1,0 +1,70 @@
+- replace /init by magiskinit (see Magisk/native/jni/init)
+  - SARBase::patch_rootdir
+    - setup_tmp: TODO
+    - mount_rules_dir: look for magisk directory
+      - in one of: /data, /data/unencrypted, /cache, /metadata, /persist
+      - only tries ext4 because f2fs "may crash the kernel"
+      - partition names differ depending on vendor so there is a special case for Nvidia.
+      - rules are in subdir magisk (in most cases)
+      - This is custom_rules_dir (see below).
+    - bind-mount / to ROOTMIR, with special logic for /sbin
+      - recreate_sbin symlinks or bind-mounts everything from /sbin into the mirror
+    - patch /init (or libselinux)
+      - "force loading monolithic sepolicy"
+        - monopolicy means /sepolicy
+        - split policy is: /system/etc/selinux/plat_sepolicy.cil
+      - load /sbin/.se or /dev/.se instead of /sepolicy
+      - see patch_sepolicy
+    - "restore backup files" (either ourselves or using daemon)
+      - daemon probably is for two_stage boot: first stage remembers the files in RAM,
+        patches fstab and waits for the second stage to be mounted+executed
+      - backupped files are:
+        - /overlay.d
+        - /proc/self/exe, i.e. magiskinit
+        - /.backup/.magisk -> magisk config
+    - (load_overlay_rc)
+    - patch /init.rc or /system/etc/init/hw/init.rc (Android 11)
+      - disable vaultkeeper and flash_recovery
+      - inject script from rc_list, see load_overlay_rc -> overlay.d/*.rc
+      - inject MAGISK_RC with three random names for services
+        - SEPOL_PROC_DOMAIN is "magisk" so why do the services have random names but not the domain?
+        - maybe because changes to init.rc will be undone
+      - overlay.d is $magisk_tmp/.magisk/rootdir, here
+    - extract magisk32 and magisk64 (will be used by scripts)
+    - magic_mount: bind-mount files from ROOTOVL to /, e.g. /init.rc
+
+
+  - RootFSBase::patch_rootfs
+    - link /sbin to /root: TODO why?
+    - mount_rules_dir: TODO
+    - patch /sepolicy
+    - move files from /overlay.d to /
+      (instead of bind-mounts at runtime, I assume)
+    - patch /init.rc (without new path for Android 11!)
+    - save magiskinit in /sbin/magisk
+
+  - patch_sepolicy
+    - mount selinuxfs, load policy, patch, dump
+    - magisk_rules:
+      - nobody can load further selinux rules
+      - magisk domain is unconstrained and permissive and has lots of allow rules
+      - client domain for su process is like untrusted app (on new Android)
+      - "Let everyone access tmpfs files", hm...
+      - "shell" means ADB shell (see su_daemon.cpp).
+    - custom_rules_dir: custom_rules_dir/*/sepolicy.rule
+    - replace /sepolicy_debug (if it exists), for OnePlus
+
+  - config is written to: $magisk_tmp/.magisk/config
+  - $magisk_tmp is either /sbin or /dev/$random
+    - /sbin doesn't exist for redfin/GOS so probably below /dev
+    - $magisk_tmp as well as $magisk_tmp/.magisk get permission 755 ?!
+    - $magisk_tmp/.magisk/{mirror,block} get 000
+    - /dev also has permission 755 on redfin
+
+  - check_key_combo: look at /event* and check whether KEY_VOLUMEUP is held for more than 3 sec
+  - setup_klog: close stdio, use /dev/kmsg, disable kmsg rate limiting
+  - load_kernel_info: calls setup_klog, mount /proc and /sys, print info
+
+  - two_stage: first_stage_ramdisk, ...
+
+- TODO: get_client_cred relies on ucred being at offset 0 of sock_cred -> is this undefined behavior? cast to base class instead?
